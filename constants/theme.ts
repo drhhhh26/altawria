@@ -1,31 +1,55 @@
-// Design tokens for التؤوريا
+// Design tokens for التؤوريا — v2 (light theme, Duolingo-inspired)
 export const Colors = {
-  // Primary palette — deep navy + gold
-  background:    '#0A0F1E',
-  surface:       '#111827',
-  surfaceAlt:    '#1C2537',
-  border:        '#2A3548',
+  // Base surfaces — light theme
+  background:    '#FAFAF8',
+  surface:       '#FFFFFF',
+  surfaceAlt:    '#F3F4F6',
+  border:        '#E5E7EB',
+  borderStrong:  '#D1D5DB',
 
-  primary:       '#F5A623',   // Gold — exam / accent
-  primaryDark:   '#C87D0E',
-  primaryLight:  '#FFD580',
+  // Primary — Teal (brand, active states, progress)
+  primary:       '#14B8A6',
+  primaryDark:   '#0D9488',
+  primaryLight:  '#5EEAD4',
 
-  secondary:     '#3B82F6',   // Blue — study mode
+  // Secondary — Orange (exam mode, energy)
+  secondary:     '#F97316',
+  secondaryDark: '#EA580C',
 
+  // Study mode — Indigo
+  indigo:        '#6366F1',
+  indigoDark:    '#4F46E5',
+
+  // Accent
+  pink:          '#EC4899',
+
+  // Semantic
   success:       '#22C55E',
+  successDark:   '#16A34A',
   error:         '#EF4444',
+  errorDark:     '#DC2626',
   warning:       '#F59E0B',
 
-  text:          '#F1F5F9',
-  textSecondary: '#94A3B8',
-  textMuted:     '#475569',
+  // Text
+  text:          '#1A1B23',
+  textSecondary: '#6B7280',
+  textMuted:     '#9CA3AF',
 
-  // Category colors
+  // Semantic background tints (badges, answer feedback)
+  tealBg:        '#CCFBF1',
+  orangeBg:      '#FFF7ED',
+  indigoBg:      '#EEF2FF',
+  pinkBg:        '#FDF2F8',
+  greenBg:       '#F0FDF4',
+  redBg:         '#FEF2F2',
+  amberBg:       '#FFFBEB',
+
+  // Question categories — color + background tint
   categories: {
-    'قوانين المرور':    '#3B82F6',   // Blue
-    'السلامة على الطرق': '#22C55E',  // Green
-    'إشارات المرور':    '#F5A623',   // Gold
-    'معرفة المركبة':    '#A855F7',   // Purple
+    'قوانين المرور':     { color: '#6366F1', bg: '#EEF2FF' },
+    'السلامة على الطرق': { color: '#14B8A6', bg: '#CCFBF1' },
+    'إشارات المرور':     { color: '#F97316', bg: '#FFF7ED' },
+    'معرفة المركبة':     { color: '#EC4899', bg: '#FDF2F8' },
   },
 } as const;
 
@@ -33,13 +57,13 @@ export const Fonts = {
   regular: 'System',
   bold:    'System',
   sizes: {
-    xs:   11,
-    sm:   13,
-    md:   15,
-    lg:   18,
-    xl:   22,
-    xxl:  28,
-    hero: 36,
+    xs:   12,
+    sm:   14,
+    md:   16,
+    lg:   20,
+    xl:   24,
+    xxl:  32,
+    hero: 40,
   },
 } as const;
 
@@ -53,10 +77,10 @@ export const Spacing = {
 } as const;
 
 export const Radius = {
-  sm:   8,
-  md:   12,
-  lg:   20,
-  xl:   28,
+  sm:   12,
+  md:   16,
+  lg:   24,
+  xl:   32,
   full: 999,
 } as const;
 
