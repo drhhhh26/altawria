@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Dimensions,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, Fonts, Spacing, Radius, LICENSE_CLASSES, type LicenseClass } from '../../constants/theme';
 import { useSettings } from '../../store/settingsStore';
-
-const { width } = Dimensions.get('window');
 
 export default function LicenseQuizScreen() {
   const [selected, setSelected] = useState<LicenseClass | null>(null);
@@ -29,11 +26,6 @@ export default function LicenseQuizScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#0A0F1E', '#111827']}
-        style={StyleSheet.absoluteFillObject}
-      />
-
       <View style={styles.header}>
         <Text style={styles.step}>الخطوة 1 من 2</Text>
         <Text style={styles.title}>أي رخصة تستعد لها؟</Text>
@@ -52,12 +44,6 @@ export default function LicenseQuizScreen() {
               onPress={() => handleSelect(cls.id)}
               activeOpacity={0.85}
             >
-              {isSelected && (
-                <LinearGradient
-                  colors={[Colors.primary + '30', Colors.primary + '10']}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              )}
               <Text style={styles.icon}>{cls.icon}</Text>
               <View style={styles.cardText}>
                 <Text style={[styles.classLabel, isSelected && styles.classLabelSelected]}>
@@ -82,14 +68,7 @@ export default function LicenseQuizScreen() {
           disabled={!selected}
           activeOpacity={0.85}
         >
-          <LinearGradient
-            colors={selected ? [Colors.primary, Colors.primaryDark] : [Colors.border, Colors.border]}
-            style={styles.btnGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Text style={styles.btnText}>متابعة</Text>
-          </LinearGradient>
+          <Text style={[styles.btnText, !selected && styles.btnTextDisabled]}>متابعة</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -109,7 +88,7 @@ const styles = StyleSheet.create({
     fontSize: Fonts.sizes.sm,
     fontWeight: '600',
     marginBottom: Spacing.sm,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   title: {
     fontSize: Fonts.sizes.xxl,
@@ -117,6 +96,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: Fonts.sizes.md,
@@ -134,13 +114,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: Radius.md,
     padding: Spacing.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.borderStrong,
     gap: Spacing.md,
-    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardSelected: {
     borderColor: Colors.primary,
+    borderBottomColor: Colors.primaryDark,
+    backgroundColor: Colors.tealBg,
   },
   icon: { fontSize: 36 },
   cardText: { flex: 1 },
@@ -148,12 +136,14 @@ const styles = StyleSheet.create({
     fontSize: Fonts.sizes.lg,
     fontWeight: '700',
     color: Colors.textSecondary,
+    textAlign: 'right',
   },
   classLabelSelected: { color: Colors.primary },
   classDesc: {
     fontSize: Fonts.sizes.sm,
     color: Colors.textMuted,
     marginTop: 2,
+    textAlign: 'right',
   },
   checkmark: {
     width: 28,
@@ -169,22 +159,22 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
   btn: {
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  btnDisabled: { shadowOpacity: 0, elevation: 0 },
-  btnGradient: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
     paddingVertical: Spacing.md + 4,
     alignItems: 'center',
+    borderBottomWidth: 4,
+    borderBottomColor: Colors.primaryDark,
+  },
+  btnDisabled: {
+    backgroundColor: Colors.surfaceAlt,
+    borderBottomColor: Colors.border,
+    borderBottomWidth: 2,
   },
   btnText: {
     fontSize: Fonts.sizes.xl,
     fontWeight: '700',
     color: '#fff',
   },
+  btnTextDisabled: { color: Colors.textMuted },
 });

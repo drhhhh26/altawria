@@ -7,6 +7,7 @@ import { useSettings } from '../store/settingsStore';
 import { Colors } from '../constants/theme';
 
 // Force RTL for Arabic
+I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 
 export default function RootLayout() {

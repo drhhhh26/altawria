@@ -1,21 +1,15 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Fonts, Spacing, Radius } from '../../constants/theme';
 import { useSettings } from '../../store/settingsStore';
 import { getCategoryStats } from '../../db/database';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  'قوانين المرور':     '📋',
-  'السلامة على الطرق': '⚠️',
-  'إشارات المرور':    '🛑',
-  'معرفة المركبة':    '🔧',
-};
-
 type CategoryStat = { category: string; total: number; seen: number; correct: number };
+
+type CatEntry = { color: string; bg: string };
 
 export default function StudyTab() {
   const { licenseClass } = useSettings();
@@ -36,55 +30,49 @@ export default function StudyTab() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>وضع الدراسة</Text>
+        <Text style={styles.title}>دراسة</Text>
         <Text style={styles.subtitle}>اختر موضوعاً للبدء</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {stats.map((stat) => {
           const pct = stat.seen > 0 ? Math.round((stat.correct / stat.seen) * 100) : null;
-          const progress = Math.round((stat.seen / stat.total) * 100);
-          const catColor = (Colors.categories as any)[stat.category] ?? Colors.primary;
+          const catEntry = (Colors.categories as any)[stat.category] as CatEntry | undefined;
+          const catColor = catEntry?.color ?? Colors.primary;
+          const catBg = catEntry?.bg ?? Colors.tealBg;
 
           return (
             <TouchableOpacity
               key={stat.category}
-              style={styles.card}
+              style={[styles.item, { borderRightColor: catColor }]}
               onPress={() => handleCategory(stat.category)}
               activeOpacity={0.85}
             >
-              <View style={styles.cardLeft}>
-                <Text style={styles.catIcon}>{CATEGORY_ICONS[stat.category] ?? '📚'}</Text>
-                <View style={styles.catInfo}>
-                  <Text style={styles.catName}>{stat.category}</Text>
-                  <Text style={styles.catCount}>{stat.total} سؤال</Text>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{stat.category}</Text>
+                <Text style={styles.itemCount}>{stat.total} سؤال</Text>
+              </View>
+              {pct !== null ? (
+                <View style={[styles.badge, { backgroundColor: catBg }]}>
+                  <Text style={[styles.badgeText, { color: catColor }]}>{pct}%</Text>
                 </View>
-              </View>
-              <View style={styles.cardRight}>
-                {pct !== null ? (
-                  <View style={[styles.pctBadge, { backgroundColor: catColor + '20' }]}>
-                    <Text style={[styles.pctText, { color: catColor }]}>{pct}%</Text>
-                  </View>
-                ) : (
-                  <View style={styles.newBadge}>
-                    <Text style={styles.newText}>جديد</Text>
-                  </View>
-                )}
-                <Ionicons name="chevron-back" size={18} color={Colors.textMuted} />
-              </View>
+              ) : (
+                <View style={[styles.badge, { backgroundColor: catBg }]}>
+                  <Text style={[styles.badgeText, { color: catColor }]}>جديد</Text>
+                </View>
+              )}
+              <Ionicons name="chevron-back" size={18} color={Colors.textMuted} />
             </TouchableOpacity>
           );
         })}
 
         {/* Bookmarks shortcut */}
-        <TouchableOpacity style={[styles.card, styles.bookmarkCard]} onPress={handleBookmarks} activeOpacity={0.85}>
-          <View style={styles.cardLeft}>
-            <Text style={styles.catIcon}>🔖</Text>
-            <View style={styles.catInfo}>
-              <Text style={styles.catName}>المحفوظات</Text>
-              <Text style={styles.catCount}>الأسئلة المحفوظة</Text>
-            </View>
+        <TouchableOpacity style={[styles.item, styles.bookmarkItem]} onPress={handleBookmarks} activeOpacity={0.85}>
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemName}>المحفوظات</Text>
+            <Text style={styles.itemCount}>الأسئلة المحفوظة</Text>
           </View>
+          <Ionicons name="bookmark-outline" size={20} color={Colors.primary} />
           <Ionicons name="chevron-back" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
       </ScrollView>
@@ -99,41 +87,39 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.lg,
   },
-  title: { fontSize: Fonts.sizes.xxl, fontWeight: '800', color: Colors.text },
-  subtitle: { fontSize: Fonts.sizes.md, color: Colors.textSecondary, marginTop: 4 },
+  title: { fontSize: Fonts.sizes.xxl, fontWeight: '800', color: Colors.text, letterSpacing: -0.5, textAlign: 'right' },
+  subtitle: { fontSize: Fonts.sizes.md, color: Colors.textSecondary, marginTop: 4, textAlign: 'right' },
   body: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     paddingBottom: Spacing.xxl,
   },
-  card: {
+  item: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.md,
     backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderRightWidth: 4,
+    borderRightColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  bookmarkCard: { borderColor: Colors.primary + '30', borderStyle: 'dashed' },
-  cardLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
-  catIcon: { fontSize: 32 },
-  catInfo: { gap: 4 },
-  catName: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.text },
-  catCount: { fontSize: Fonts.sizes.sm, color: Colors.textMuted },
-  cardRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  pctBadge: {
+  bookmarkItem: {
+    borderRightColor: Colors.primary,
+    marginTop: Spacing.sm,
+  },
+  itemInfo: { flex: 1, gap: 2 },
+  itemName: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.text, textAlign: 'right' },
+  itemCount: { fontSize: Fonts.sizes.sm, color: Colors.textMuted, textAlign: 'right' },
+  badge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    borderRadius: Radius.full,
+    borderRadius: Radius.sm,
   },
-  pctText: { fontSize: Fonts.sizes.sm, fontWeight: '700' },
-  newBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.secondary + '20',
-  },
-  newText: { fontSize: Fonts.sizes.sm, fontWeight: '700', color: Colors.secondary },
+  badgeText: { fontSize: Fonts.sizes.sm, fontWeight: '700' },
 });

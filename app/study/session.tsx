@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Image, ActivityIndicator, Alert,
@@ -14,6 +14,9 @@ import {
 } from '../../db/database';
 import { ImageMap } from '../../constants/imageMap';
 
+const ANSWER_LABELS = ['أ', 'ب', 'ج', 'د'];
+
+type CatEntry = { color: string; bg: string };
 type QWithAnswers = QuestionRow & { answers: AnswerRow[]; isBookmarked: boolean };
 
 export default function StudySession() {
@@ -26,9 +29,7 @@ export default function StudySession() {
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadQuestions();
-  }, [category, licenseClass]);
+  useEffect(() => { loadQuestions(); }, [category, licenseClass]);
 
   async function loadQuestions() {
     setLoading(true);
@@ -113,8 +114,9 @@ export default function StudySession() {
   }
 
   const correctIdx = current.answers.findIndex(a => a.is_correct === 1);
-  const imageFile = current.image_file;
-  const imageSource = current.image_source;
+  const answered = selectedAnswer !== null || revealed;
+  const catEntry = (Colors.categories as any)[current.category] as CatEntry | undefined;
+  const catColor = catEntry?.color ?? Colors.primary;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -128,34 +130,37 @@ export default function StudySession() {
           <Ionicons
             name={current.isBookmarked ? 'bookmark' : 'bookmark-outline'}
             size={24}
-            color={current.isBookmarked ? Colors.primary : Colors.text}
+            color={current.isBookmarked ? Colors.primary : Colors.textMuted}
           />
         </TouchableOpacity>
       </View>
 
-      {/* Progress bar */}
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${((currentIdx + 1) / questions.length) * 100}%` as any }]} />
+      {/* Category-colored progress bar */}
+      <View style={styles.progressBarBg}>
+        <View style={[styles.progressBarFill, {
+          width: `${((currentIdx + 1) / questions.length) * 100}%` as any,
+          backgroundColor: catColor,
+        }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Category badge */}
-        <Text style={styles.category}>{current.category}</Text>
+        {/* Category tag */}
+        <Text style={[styles.category, { color: catColor }]}>{current.category}</Text>
 
         {/* Question */}
         <Text style={styles.question}>{current.question}</Text>
 
         {/* Image */}
-        {imageFile && (
+        {current.image_file && (
           <View style={styles.imageWrap}>
             <Image
-              source={ImageMap[imageFile]}
+              source={ImageMap[current.image_file]}
               style={styles.image}
               resizeMode="contain"
             />
-            {imageSource && (
+            {current.image_source && (
               <Text style={styles.imageCredit} numberOfLines={1}>
-                © المصدر: {imageSource}
+                © المصدر: {current.image_source}
               </Text>
             )}
           </View>
@@ -164,47 +169,61 @@ export default function StudySession() {
         {/* Answers */}
         <View style={styles.answers}>
           {current.answers.map((answer, idx) => {
+            const isCorrect = idx === correctIdx;
+            const isWrongSelected = idx === selectedAnswer && !isCorrect;
+
             let bg = Colors.surface;
             let borderColor = Colors.border;
+            let borderBottomColor = Colors.border;
             let textColor = Colors.text;
+            let numBg = Colors.surfaceAlt;
+            let numColor = Colors.textSecondary;
 
-            if (revealed || selectedAnswer !== null) {
-              if (idx === correctIdx) {
-                bg = Colors.success + '20';
+            if (answered) {
+              if (isCorrect) {
+                bg = Colors.greenBg;
                 borderColor = Colors.success;
-                textColor = Colors.success;
-              } else if (idx === selectedAnswer && idx !== correctIdx) {
-                bg = Colors.error + '20';
+                borderBottomColor = Colors.successDark;
+                textColor = Colors.successDark;
+                numBg = Colors.success;
+                numColor = '#fff';
+              } else if (isWrongSelected) {
+                bg = Colors.redBg;
                 borderColor = Colors.error;
-                textColor = Colors.error;
+                borderBottomColor = Colors.errorDark;
+                textColor = Colors.errorDark;
+                numBg = Colors.error;
+                numColor = '#fff';
               }
             } else if (idx === selectedAnswer) {
-              bg = Colors.primary + '20';
               borderColor = Colors.primary;
+              borderBottomColor = Colors.primaryDark;
             }
 
             return (
               <TouchableOpacity
                 key={answer.id}
-                style={[styles.answerBtn, { backgroundColor: bg, borderColor }]}
+                style={[styles.answerBtn, { backgroundColor: bg, borderColor, borderBottomColor }]}
                 onPress={() => handleSelectAnswer(idx)}
                 activeOpacity={0.85}
               >
-                <View style={[styles.answerNum, { borderColor }]}>
-                  <Text style={[styles.answerNumText, { color: textColor }]}>
-                    {String.fromCharCode(0x0041 + idx)}
+                <View style={[styles.answerNum, { backgroundColor: numBg }]}>
+                  <Text style={[styles.answerNumText, { color: numColor }]}>
+                    {ANSWER_LABELS[idx]}
                   </Text>
                 </View>
-                <Text style={[styles.answerText, { color: textColor }]}>{answer.text}</Text>
+                <Text style={[styles.answerText, { color: textColor, fontWeight: answered && (isCorrect || isWrongSelected) ? '600' : '400' }]}>
+                  {answer.text}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Reveal / copyright */}
+        {/* Reveal button */}
         {!revealed && selectedAnswer === null && (
           <TouchableOpacity style={styles.revealBtn} onPress={handleReveal} activeOpacity={0.85}>
-            <Text style={styles.revealText}>اظهار الإجابة الصحيحة</Text>
+            <Text style={styles.revealText}>إظهار الإجابة الصحيحة</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -233,32 +252,79 @@ export default function StudySession() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, backgroundColor: Colors.background },
   emptyIcon: { fontSize: 64 },
   emptyText: { fontSize: Fonts.sizes.lg, color: Colors.textMuted },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerBtn: { padding: Spacing.sm },
   backBtn: { padding: Spacing.lg },
   progress: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.textSecondary },
-  progressBar: { height: 4, backgroundColor: Colors.border, marginHorizontal: Spacing.lg },
-  progressFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 2 },
+  progressBarBg: { height: 4, backgroundColor: Colors.surfaceAlt, marginHorizontal: Spacing.lg },
+  progressBarFill: { height: '100%', borderRadius: 2 },
   body: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: 100, gap: Spacing.md },
-  category: { fontSize: Fonts.sizes.sm, fontWeight: '700', color: Colors.primary, letterSpacing: 0.5 },
-  question: { fontSize: Fonts.sizes.lg, fontWeight: '600', color: Colors.text, lineHeight: 28, textAlign: 'right', writingDirection: 'rtl' },
+  category: { fontSize: Fonts.sizes.sm, fontWeight: '700', letterSpacing: 0.3, textAlign: 'right' },
+  question: { fontSize: Fonts.sizes.lg, fontWeight: '600', color: Colors.text, lineHeight: 30, textAlign: 'right', writingDirection: 'rtl' },
   imageWrap: { borderRadius: Radius.md, overflow: 'hidden', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   image: { width: '100%', height: 200 },
   imageCredit: { fontSize: 10, color: Colors.textMuted, padding: Spacing.sm, textAlign: 'right' },
   answers: { gap: Spacing.sm },
-  answerBtn: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radius.md, borderWidth: 1.5, gap: Spacing.md },
-  answerNum: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  answerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderBottomWidth: 2,
+    gap: Spacing.md,
+  },
+  answerNum: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   answerNumText: { fontSize: Fonts.sizes.sm, fontWeight: '700' },
   answerText: { flex: 1, fontSize: Fonts.sizes.md, lineHeight: 22, textAlign: 'right', writingDirection: 'rtl' },
-  revealBtn: { backgroundColor: Colors.surface, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center', borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed' },
-  revealText: { fontSize: Fonts.sizes.md, color: Colors.textSecondary, fontWeight: '600' },
-  nav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', padding: Spacing.lg, backgroundColor: Colors.background, borderTopWidth: 1, borderTopColor: Colors.border, gap: Spacing.md },
+  revealBtn: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.borderStrong,
+  },
+  revealText: { fontSize: Fonts.sizes.md, color: Colors.textSecondary, fontWeight: '600', textAlign: 'right' },
+  nav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    gap: Spacing.md,
+  },
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.md },
   navBtnDisabled: { opacity: 0.4 },
   navText: { fontSize: Fonts.sizes.md, fontWeight: '600', color: Colors.text },
-  navBtnNext: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, backgroundColor: Colors.primary, borderRadius: Radius.md, padding: Spacing.md },
+  navBtnNext: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderBottomWidth: 4,
+    borderBottomColor: Colors.primaryDark,
+  },
   navNextText: { fontSize: Fonts.sizes.md, fontWeight: '700', color: '#fff' },
 });

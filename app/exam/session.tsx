@@ -14,6 +14,8 @@ import {
 } from '../../db/database';
 import { ImageMap } from '../../constants/imageMap';
 
+const ANSWER_LABELS = ['أ', 'ب', 'ج', 'د'];
+
 type QWithAnswers = QuestionRow & { answers: AnswerRow[]; selectedIdx: number | null };
 
 function formatTime(seconds: number): string {
@@ -45,7 +47,6 @@ export default function ExamSession() {
     setQuestions(withAnswers);
     setLoading(false);
 
-    // Start timer
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -61,7 +62,7 @@ export default function ExamSession() {
   const handleSelectAnswer = (answerIdx: number) => {
     if (finished) return;
     const q = questions[currentIdx];
-    if (q.selectedIdx !== null) return; // locked
+    if (q.selectedIdx !== null) return;
 
     const isCorrect = q.answers[answerIdx]?.is_correct === 1;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -127,10 +128,9 @@ export default function ExamSession() {
         <View style={styles.center}>
           <Text style={{ fontSize: 48 }}>⚠️</Text>
           <Text style={[styles.loadingText, { textAlign: 'center', marginTop: 16 }]}>
-            لم نتمكن من تحميل أسئلة الامتحان.
-            {'\n'}يرجى التحقق من إعدادات الرخصة والمحاولة مرة أخرى.
+            لم نتمكن من تحميل أسئلة الامتحان.{'\n'}يرجى التحقق من إعدادات الرخصة والمحاولة مرة أخرى.
           </Text>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 24, padding: 12, backgroundColor: Colors.surface, borderRadius: 8 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 24, padding: 12, backgroundColor: Colors.surface, borderRadius: Radius.md }}>
             <Text style={{ color: Colors.text }}>العودة</Text>
           </TouchableOpacity>
         </View>
@@ -139,9 +139,8 @@ export default function ExamSession() {
   }
 
   const current = questions[currentIdx];
-  const correctIdx = current.answers.findIndex(a => a.is_correct === 1);
   const answered = questions.filter(q => q.selectedIdx !== null).length;
-  const isLowTime = timeLeft < 300; // < 5 min
+  const isLowTime = timeLeft < 300;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -151,7 +150,7 @@ export default function ExamSession() {
           <Ionicons name="close" size={24} color={Colors.textMuted} />
         </TouchableOpacity>
 
-        <View style={styles.timerWrap}>
+        <View style={[styles.timerWrap, isLowTime && styles.timerWrapLow]}>
           <Ionicons name="timer" size={16} color={isLowTime ? Colors.error : Colors.primary} />
           <Text style={[styles.timer, isLowTime && styles.timerLow]}>{formatTime(timeLeft)}</Text>
         </View>
@@ -164,10 +163,8 @@ export default function ExamSession() {
         {questions.map((q, i) => {
           let color = Colors.border;
           if (i === currentIdx) color = Colors.primary;
-          else if (q.selectedIdx !== null) color = Colors.success + 'AA';
-          return (
-            <View key={i} style={[styles.dot, { backgroundColor: color }]} />
-          );
+          else if (q.selectedIdx !== null) color = Colors.success;
+          return <View key={i} style={[styles.dot, { backgroundColor: color }]} />;
         })}
       </ScrollView>
 
@@ -191,27 +188,31 @@ export default function ExamSession() {
           {current.answers.map((answer, idx) => {
             let bg = Colors.surface;
             let borderColor = Colors.border;
+            let borderBottomColor = Colors.border;
             let textColor = Colors.text;
+            let numBg = Colors.surfaceAlt;
+            let numColor = Colors.textSecondary;
 
-            if (current.selectedIdx !== null) {
-              if (idx === current.selectedIdx) {
-                const isCorrect = answer.is_correct === 1;
-                bg = isCorrect ? Colors.success + '20' : Colors.error + '20';
-                borderColor = isCorrect ? Colors.success : Colors.error;
-                textColor = isCorrect ? Colors.success : Colors.error;
-              }
+            if (current.selectedIdx !== null && idx === current.selectedIdx) {
+              const isCorrect = answer.is_correct === 1;
+              bg = isCorrect ? Colors.greenBg : Colors.redBg;
+              borderColor = isCorrect ? Colors.success : Colors.error;
+              borderBottomColor = isCorrect ? Colors.successDark : Colors.errorDark;
+              textColor = isCorrect ? Colors.successDark : Colors.errorDark;
+              numBg = isCorrect ? Colors.success : Colors.error;
+              numColor = '#fff';
             }
 
             return (
               <TouchableOpacity
                 key={answer.id}
-                style={[styles.answerBtn, { backgroundColor: bg, borderColor }]}
+                style={[styles.answerBtn, { backgroundColor: bg, borderColor, borderBottomColor }]}
                 onPress={() => handleSelectAnswer(idx)}
                 activeOpacity={current.selectedIdx !== null ? 1 : 0.85}
               >
-                <View style={[styles.answerNum, { borderColor }]}>
-                  <Text style={[styles.answerNumText, { color: textColor }]}>
-                    {String.fromCharCode(0x0041 + idx)}
+                <View style={[styles.answerNum, { backgroundColor: numBg }]}>
+                  <Text style={[styles.answerNumText, { color: numColor }]}>
+                    {ANSWER_LABELS[idx]}
                   </Text>
                 </View>
                 <Text style={[styles.answerText, { color: textColor }]}>{answer.text}</Text>
@@ -225,7 +226,10 @@ export default function ExamSession() {
       <View style={styles.footer}>
         <Text style={styles.footerInfo}>{answered} / {questions.length} أجبت</Text>
         <TouchableOpacity
-          style={[styles.nextBtn, current.selectedIdx === null && styles.nextBtnSkip]}
+          style={[
+            styles.nextBtn,
+            current.selectedIdx === null && styles.nextBtnSkip,
+          ]}
           onPress={handleNext}
           activeOpacity={0.85}
         >
@@ -245,7 +249,13 @@ const styles = StyleSheet.create({
   loadingText: { color: Colors.textSecondary, fontSize: Fonts.sizes.md },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   quitBtn: { padding: Spacing.sm },
-  timerWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.surface, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border },
+  timerWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.tealBg,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+    borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.primary + '40',
+  },
+  timerWrapLow: { backgroundColor: Colors.redBg, borderColor: Colors.error + '40' },
   timer: { fontSize: Fonts.sizes.lg, fontWeight: '700', color: Colors.primary, fontVariant: ['tabular-nums'] },
   timerLow: { color: Colors.error },
   counter: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.textSecondary },
@@ -253,18 +263,38 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 4, alignItems: 'center', paddingVertical: 4 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   body: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 100, gap: Spacing.md },
-  question: { fontSize: Fonts.sizes.lg, fontWeight: '600', color: Colors.text, lineHeight: 28, textAlign: 'right', writingDirection: 'rtl' },
+  question: { fontSize: Fonts.sizes.lg, fontWeight: '600', color: Colors.text, lineHeight: 30, textAlign: 'right', writingDirection: 'rtl' },
   imageWrap: { borderRadius: Radius.md, overflow: 'hidden', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   image: { width: '100%', height: 200 },
   imageCredit: { fontSize: 10, color: Colors.textMuted, padding: Spacing.sm, textAlign: 'right' },
   answers: { gap: Spacing.sm },
-  answerBtn: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radius.md, borderWidth: 1.5, gap: Spacing.md },
-  answerNum: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  answerBtn: {
+    flexDirection: 'row', alignItems: 'center', padding: Spacing.md,
+    borderRadius: Radius.md, borderWidth: 1.5, borderBottomWidth: 2, gap: Spacing.md,
+  },
+  answerNum: {
+    width: 32, height: 32, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
   answerNumText: { fontSize: Fonts.sizes.sm, fontWeight: '700' },
   answerText: { flex: 1, fontSize: Fonts.sizes.md, lineHeight: 22, textAlign: 'right', writingDirection: 'rtl' },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.lg, backgroundColor: Colors.background, borderTopWidth: 1, borderTopColor: Colors.border, gap: Spacing.md },
-  footerInfo: { fontSize: Fonts.sizes.sm, color: Colors.textMuted },
-  nextBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, backgroundColor: Colors.primary, borderRadius: Radius.md, paddingVertical: Spacing.md },
-  nextBtnSkip: { backgroundColor: Colors.surfaceAlt },
+  footer: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: Spacing.lg, backgroundColor: Colors.background,
+    borderTopWidth: 1, borderTopColor: Colors.border, gap: Spacing.md,
+  },
+  footerInfo: { fontSize: Fonts.sizes.sm, color: Colors.textMuted, textAlign: 'right' },
+  nextBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.sm, backgroundColor: Colors.secondary,
+    borderRadius: Radius.md, paddingVertical: Spacing.md,
+    borderBottomWidth: 4, borderBottomColor: Colors.secondaryDark,
+  },
+  nextBtnSkip: {
+    backgroundColor: Colors.surfaceAlt,
+    borderBottomColor: Colors.border,
+    borderBottomWidth: 2,
+  },
   nextText: { fontSize: Fonts.sizes.md, fontWeight: '700', color: '#fff' },
 });

@@ -4,7 +4,6 @@ import {
   ScrollView, RefreshControl, Modal,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Spacing, Radius, LICENSE_CLASSES, LicenseClass } from '../../constants/theme';
 import { useSettings } from '../../store/settingsStore';
@@ -38,6 +37,7 @@ export default function HomeScreen() {
   const totalQuestions = stats.reduce((acc, s) => acc + s.total, 0);
   const totalCorrect = stats.reduce((acc, s) => acc + (s.correct || 0), 0);
   const overallPct = totalSeen > 0 ? Math.round((totalCorrect / totalSeen) * 100) : 0;
+  const completionPct = totalQuestions > 0 ? Math.round((totalSeen / totalQuestions) * 100) : 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -75,92 +75,81 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={Colors.primary} />}
       >
         {/* Header */}
-        <LinearGradient
-          colors={['#111827', Colors.background]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>مرحباً! 👋</Text>
+            <Text style={styles.greeting}>مرحباً</Text>
             <Text style={styles.appName}>التؤوريا</Text>
           </View>
           {classInfo && (
             <TouchableOpacity style={styles.classBadge} onPress={() => setShowPicker(true)} activeOpacity={0.8}>
               <Text style={styles.classIcon}>{classInfo.icon}</Text>
               <Text style={styles.classLabel}>رخصة {classInfo.label}</Text>
-              <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
+              <Ionicons name="chevron-down" size={14} color={Colors.textMuted} />
             </TouchableOpacity>
           )}
-        </LinearGradient>
+        </View>
 
         <View style={styles.body}>
           {/* Quick actions */}
           <View style={styles.row}>
             <TouchableOpacity
-              style={[styles.actionCard, { backgroundColor: Colors.secondary + '20', borderColor: Colors.secondary + '50' }]}
+              style={[styles.actionCard, { backgroundColor: Colors.indigo, borderBottomColor: Colors.indigoDark }]}
               onPress={() => router.push('/(tabs)/study')}
               activeOpacity={0.85}
             >
-              <Ionicons name="book" size={32} color={Colors.secondary} />
-              <Text style={[styles.actionTitle, { color: Colors.secondary }]}>دراسة</Text>
+              <Text style={styles.actionTitle}>دراسة</Text>
               <Text style={styles.actionSub}>تصفح الأسئلة</Text>
+              <Text style={styles.actionGhost}>1800</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionCard, { backgroundColor: Colors.primary + '20', borderColor: Colors.primary + '50' }]}
+              style={[styles.actionCard, { backgroundColor: Colors.secondary, borderBottomColor: Colors.secondaryDark }]}
               onPress={() => router.push('/(tabs)/exam')}
               activeOpacity={0.85}
             >
-              <Ionicons name="timer" size={32} color={Colors.primary} />
-              <Text style={[styles.actionTitle, { color: Colors.primary }]}>امتحان</Text>
-              <Text style={styles.actionSub}>30 سؤال / 40 دقيقة</Text>
+              <Text style={styles.actionTitle}>امتحان</Text>
+              <Text style={styles.actionSub}>30 سؤال · 40 دقيقة</Text>
+              <Text style={styles.actionGhost}>30</Text>
             </TouchableOpacity>
           </View>
 
           {/* Progress overview */}
           {totalSeen > 0 && (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>تقدمك الإجمالي</Text>
-              <View style={styles.progressRow}>
-                <View style={styles.statBox}>
-                  <Text style={styles.statNum}>{totalSeen}</Text>
-                  <Text style={styles.statLabel}>سؤال تمت دراسته</Text>
-                </View>
-                <View style={[styles.statBox, styles.statBoxMid]}>
-                  <Text style={[styles.statNum, { color: Colors.primary }]}>{overallPct}%</Text>
-                  <Text style={styles.statLabel}>نسبة الإجابات الصحيحة</Text>
-                </View>
-                <View style={styles.statBox}>
-                  <Text style={styles.statNum}>{totalQuestions}</Text>
-                  <Text style={styles.statLabel}>إجمالي الأسئلة</Text>
-                </View>
+              <View style={styles.progTop}>
+                <Text style={styles.cardTitle}>التقدم الكلي</Text>
+                <Text style={styles.progPct}>{completionPct}%</Text>
               </View>
               {/* Progress bar */}
               <View style={styles.barBg}>
-                <View style={[styles.barFill, { width: `${Math.round((totalSeen / totalQuestions) * 100)}%` as any }]} />
+                <View style={[styles.barFill, { width: `${completionPct}%` as any }]} />
               </View>
-              <Text style={styles.barLabel}>
-                {Math.round((totalSeen / totalQuestions) * 100)}% من البنك مكتمل
-              </Text>
+              <View style={styles.progMeta}>
+                <Text style={styles.progMetaText}>{totalSeen} سؤال درسته</Text>
+                <Text style={styles.progMetaText}>{totalQuestions} إجمالي</Text>
+              </View>
             </View>
           )}
 
           {/* Last exam result */}
           {lastExam && (
-            <View style={[styles.card, { borderColor: lastExam.passed ? Colors.success + '40' : Colors.error + '40' }]}>
-              <Text style={styles.cardTitle}>آخر امتحان</Text>
+            <View style={styles.card}>
+              <View style={styles.examTop}>
+                <Text style={styles.cardTitle}>آخر امتحان</Text>
+                <Text style={styles.examDate}>
+                  {new Date(lastExam.taken_at).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </Text>
+              </View>
               <View style={styles.examResultRow}>
                 <Text style={styles.examScore}>
                   {lastExam.score}/{lastExam.total}
                 </Text>
-                <View style={[styles.examBadge, { backgroundColor: lastExam.passed ? Colors.success + '20' : Colors.error + '20' }]}>
-                  <Text style={[styles.examBadgeText, { color: lastExam.passed ? Colors.success : Colors.error }]}>
-                    {lastExam.passed ? 'نجحت ✓' : 'لم تنجح ✗'}
+                <View style={[styles.examBadge, { backgroundColor: lastExam.passed ? Colors.greenBg : Colors.redBg }]}>
+                  <Text style={[styles.examBadgeText, { color: lastExam.passed ? Colors.successDark : Colors.errorDark }]}>
+                    {lastExam.passed ? 'نجحت' : 'لم تنجح'}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.examDate}>
-                {new Date(lastExam.taken_at).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </Text>
             </View>
           )}
         </View>
@@ -177,10 +166,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.lg,
   },
-  greeting: { fontSize: Fonts.sizes.md, color: Colors.textSecondary },
-  appName: { fontSize: Fonts.sizes.xxl, fontWeight: '800', color: Colors.text, marginTop: 2 },
+  greeting: { fontSize: Fonts.sizes.sm, color: Colors.textSecondary, textAlign: 'right' },
+  appName: { fontSize: Fonts.sizes.xxl, fontWeight: '800', color: Colors.primary, letterSpacing: -0.5, textAlign: 'right' },
   classBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,67 +178,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
   },
   classIcon: { fontSize: 18 },
   classLabel: { fontSize: Fonts.sizes.sm, fontWeight: '700', color: Colors.text },
   body: { paddingHorizontal: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxl },
-  row: { flexDirection: 'row', gap: Spacing.md },
+  row: { flexDirection: 'row', gap: Spacing.sm },
   actionCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderWidth: 1,
+    gap: Spacing.xs,
+    borderBottomWidth: 4,
+    overflow: 'hidden',
+    minHeight: 110,
   },
-  actionTitle: { fontSize: Fonts.sizes.xl, fontWeight: '800' },
-  actionSub: { fontSize: Fonts.sizes.xs, color: Colors.textMuted, textAlign: 'center' },
+  actionTitle: { fontSize: Fonts.sizes.xl, fontWeight: '800', color: '#fff' },
+  actionSub: { fontSize: Fonts.sizes.sm, color: 'rgba(255,255,255,0.75)' },
+  actionGhost: {
+    position: 'absolute',
+    bottom: -4,
+    left: 12,
+    fontSize: 48,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.12)',
+    lineHeight: 56,
+  },
   card: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
     gap: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  cardTitle: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.textSecondary },
-  progressRow: { flexDirection: 'row' },
-  statBox: { flex: 1, alignItems: 'center', gap: 4 },
-  statBoxMid: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: Colors.border,
-  },
-  statNum: { fontSize: Fonts.sizes.xl, fontWeight: '800', color: Colors.text },
-  statLabel: { fontSize: Fonts.sizes.xs, color: Colors.textMuted, textAlign: 'center' },
-  barBg: {
-    height: 6,
-    backgroundColor: Colors.border,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 3,
-  },
-  barLabel: { fontSize: Fonts.sizes.xs, color: Colors.textMuted, textAlign: 'center' },
+  cardTitle: { fontSize: Fonts.sizes.sm, fontWeight: '600', color: Colors.textMuted, textAlign: 'right' },
+  progTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  progPct: { fontSize: Fonts.sizes.xl, fontWeight: '800', color: Colors.text },
+  progMeta: { flexDirection: 'row', justifyContent: 'space-between' },
+  progMetaText: { fontSize: Fonts.sizes.sm, color: Colors.textMuted, textAlign: 'right' },
+  barBg: { height: 8, backgroundColor: Colors.surfaceAlt, borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 4 },
+  examTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  examDate: { fontSize: Fonts.sizes.sm, color: Colors.textMuted },
   examResultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   examScore: { fontSize: Fonts.sizes.hero, fontWeight: '800', color: Colors.text },
   examBadge: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full },
   examBadgeText: { fontSize: Fonts.sizes.md, fontWeight: '700' },
-  examDate: { fontSize: Fonts.sizes.sm, color: Colors.textMuted },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
-  modalContent: { backgroundColor: Colors.surface, width: '100%', borderRadius: Radius.lg, padding: Spacing.lg, borderWidth: 1, borderColor: Colors.border, gap: Spacing.sm },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
+  modalContent: { backgroundColor: Colors.surface, width: '100%', borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 24, elevation: 8 },
   modalTitle: { fontSize: Fonts.sizes.lg, fontWeight: '800', color: Colors.text, textAlign: 'center', marginBottom: Spacing.sm },
-  modalItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, backgroundColor: Colors.background, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, gap: Spacing.md },
-  modalItemSelected: { borderColor: Colors.primary, backgroundColor: Colors.primary + '15' },
+  modalItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, backgroundColor: Colors.background, borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.border, gap: Spacing.md },
+  modalItemSelected: { borderColor: Colors.primary, backgroundColor: Colors.tealBg },
   modalItemIcon: { fontSize: 24 },
-  modalItemTitle: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.text, textAlign: 'left' },
-  modalItemDesc: { fontSize: Fonts.sizes.sm, color: Colors.textMuted, textAlign: 'left' },
+  modalItemTitle: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.text, textAlign: 'right' },
+  modalItemDesc: { fontSize: Fonts.sizes.sm, color: Colors.textMuted, textAlign: 'right' },
   modalCloseBtn: { marginTop: Spacing.sm, padding: Spacing.md, alignItems: 'center', backgroundColor: Colors.surfaceAlt, borderRadius: Radius.md },
   modalCloseText: { fontSize: Fonts.sizes.md, fontWeight: '700', color: Colors.text },
 });
